@@ -41,7 +41,6 @@
 #include "FontTest.h"
 #include "RISHABH-NIKU/Iconcpp.h"
 #include <fstream>
-#include "dexxter_logo.h"
 void (*OpenURL)(String *url);
 #include "GHr_Ryuuka/Tools/Call_Tools.h"
 using json = nlohmann::json;
@@ -146,6 +145,94 @@ void *getRealAddr(ulong offset) {
     return reinterpret_cast<void*>(il2cpp_base + offset);
 };
 
+static ImVec4 g_MenuColor = ImVec4(200.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f, 1.0f);
+static bool g_ColorPickerOpen = false;
+ImVec4 g_EspColor = ImVec4(200.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f, 1.0f);
+
+ImU32 GetMenuColor(int alpha = 255) {
+    return IM_COL32(
+        (int)(g_MenuColor.x * 255.0f),
+        (int)(g_MenuColor.y * 255.0f),
+        (int)(g_MenuColor.z * 255.0f),
+        alpha
+    );
+}
+
+ImVec4 GetMenuColorVec4(float alpha = 1.0f) {
+    return ImVec4(g_MenuColor.x, g_MenuColor.y, g_MenuColor.z, alpha);
+}
+
+ImU32 GetEspColor(int alpha = 255) {
+    return IM_COL32(
+        (int)(g_EspColor.x * 255.0f),
+        (int)(g_EspColor.y * 255.0f),
+        (int)(g_EspColor.z * 255.0f),
+        alpha
+    );
+}
+
+ImVec4 GetEspColorVec4(float alpha = 1.0f) {
+    return ImVec4(g_EspColor.x, g_EspColor.y, g_EspColor.z, alpha);
+}
+
+void ApplyMenuTheme() {
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImVec4* colors = style.Colors;
+    
+    colors[ImGuiCol_TitleBg]          = GetMenuColorVec4(1.0f);
+    colors[ImGuiCol_TitleBgActive]    = GetMenuColorVec4(1.0f);
+    colors[ImGuiCol_TitleBgCollapsed] = GetMenuColorVec4(1.0f);
+    colors[ImGuiCol_Button]           = GetMenuColorVec4(1.0f);
+    colors[ImGuiCol_ButtonHovered]    = GetMenuColorVec4(1.0f);
+    colors[ImGuiCol_ButtonActive]     = GetMenuColorVec4(1.0f);
+    colors[ImGuiCol_Header]           = GetMenuColorVec4(0.78f);
+    colors[ImGuiCol_HeaderHovered]    = GetMenuColorVec4(0.86f);
+    colors[ImGuiCol_HeaderActive]     = GetMenuColorVec4(1.0f);
+    colors[ImGuiCol_SliderGrab]       = GetMenuColorVec4(1.0f);
+    colors[ImGuiCol_SliderGrabActive] = GetMenuColorVec4(0.86f);
+    colors[ImGuiCol_CheckMark]        = GetMenuColorVec4(1.0f);
+    colors[ImGuiCol_Border]           = GetMenuColorVec4(0.0f);
+}
+
+bool StyledCheckbox(const char* label, bool* v)
+{
+    ImGui::PushID(label);
+    
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.20f, 0.15f, 0.25f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.25f, 0.15f, 0.30f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, GetMenuColorVec4(1.0f));
+    
+    bool changed = ImGui::Checkbox(label, v);
+    
+    ImGui::PopStyleColor(4);
+    ImGui::PopID();
+    
+    return changed;
+}
+
+static bool LeftNavButton(const char* label, const char* icon, bool selected, ImVec2 size = ImVec2(84, 90)) {
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    ImRect bb(pos, ImVec2(pos.x + size.x, pos.y + size.y));
+
+    ImU32 icon_bg_col = GetMenuColor(255);
+    
+    ImVec2 icon_rect_min(pos.x + 6, pos.y + 6);
+    ImVec2 icon_rect_max(pos.x + size.x - 6, pos.y + size.y - 6);
+    dl->AddRectFilled(icon_rect_min, icon_rect_max, icon_bg_col, 5.0f);
+    
+    ImFont* small_font = ImGui::GetIO().Fonts->Fonts[0];
+    ImVec2 icon_size = small_font->CalcTextSizeA(20.0f, FLT_MAX, 0.0f, icon);
+    ImVec2 icon_pos(pos.x + (size.x - icon_size.x) * 0.5f, pos.y + (size.y - icon_size.y) * 0.5f);
+    
+    dl->AddText(small_font, 20.0f, icon_pos, IM_COL32(255,255,255,255), icon);
+
+    ImGui::InvisibleButton(label, size);
+    bool clicked = ImGui::IsItemClicked();
+
+    return clicked;
+}
 
 namespace Settings
 {
@@ -156,80 +243,59 @@ static int Tab = 1;
 
 void SetupImgui() {
 IMGUI_CHECKVERSION();
-//InitTexture();
 ImGui::CreateContext();
 ImGui_ImplOpenGL3_Init("#version 300 es");
 
 ImGuiIO &io = ImGui::GetIO();
-ImGui::GetStyle().WindowPadding = ImVec2(6, 6);
-ImGui::GetStyle().FramePadding = ImVec2(8, 12);
-ImGui::GetStyle().ItemSpacing = ImVec2(10, 10); 
-ImGui::GetStyle().FrameBorderSize = 0.0f;
-ImGui::GetStyle().WindowBorderSize = 0.0f;
-ImGui::GetStyle().ChildBorderSize = 1.0f;
-ImGui::GetStyle().TabBorderSize = 1.0f;
-ImGui::GetStyle().ScrollbarSize = 0.0f;
+
 ImGuiStyle& style = ImGui::GetStyle();
 ImVec4* colors = style.Colors;
-style.WindowRounding = 12.0f;
-style.ChildRounding = 3.0f;
-style.FrameRounding = 50.0f;
-style.GrabRounding = 0.0f;
-style.PopupRounding = 0.0f;
-style.TabRounding = 0.0f;
-style.ScrollbarRounding = 0.0f;
-style.WindowTitleAlign = ImVec2(0.5f, 0.5f);   
 
+colors[ImGuiCol_WindowBg]         = ImColor(0, 0, 0, 255);
+colors[ImGuiCol_ChildBg]          = ImColor(0, 0, 0, 255);
+colors[ImGuiCol_PopupBg]          = ImColor(0, 0, 0, 255);
+colors[ImGuiCol_Border]           = ImVec4(0, 0, 0, 0);
+colors[ImGuiCol_BorderShadow]     = ImVec4(0, 0, 0, 0);
+colors[ImGuiCol_TitleBg]          = GetMenuColorVec4(1.0f);
+colors[ImGuiCol_TitleBgActive]    = GetMenuColorVec4(1.0f);
+colors[ImGuiCol_TitleBgCollapsed] = GetMenuColorVec4(1.0f);
 
-colors[ImGuiCol_Text]                   = ImColor(255, 255, 255, 255);
-colors[ImGuiCol_TextDisabled]           = ImColor(255, 255, 255, 255);
-colors[ImGuiCol_WindowBg]               = ImColor(24, 24, 26, 255);
-colors[ImGuiCol_ChildBg]                = ImColor(11, 23, 46, 255);
-colors[ImGuiCol_PopupBg]                = ImColor(0, 0, 0, 255);
-colors[ImGuiCol_Border]                 = ImColor(0, 255, 0, 255);
-colors[ImGuiCol_BorderShadow]           = ImColor(0, 0, 0, 0);
-colors[ImGuiCol_FrameBg]                = ImColor(36, 36, 36, 255);
-colors[ImGuiCol_FrameBgHovered]         = ImColor(36, 36, 36, 255);
-colors[ImGuiCol_FrameBgActive]          = ImColor(36, 36, 36, 255);
-colors[ImGuiCol_TitleBg]                = ImColor(147, 112, 219, 255);
-colors[ImGuiCol_TitleBgActive]          = ImColor(147, 112, 219, 255);
-colors[ImGuiCol_TitleBgCollapsed]       = ImColor(147, 112, 219, 255);
-colors[ImGuiCol_MenuBarBg]              = ImColor(20, 20, 20, 255);
-colors[ImGuiCol_ScrollbarBg]            = ImColor(20, 20, 20, 255);
-colors[ImGuiCol_ScrollbarGrab]          = ImColor(80, 80, 80, 255);
-colors[ImGuiCol_ScrollbarGrabHovered]   = ImColor(100, 100, 100, 255);
-colors[ImGuiCol_ScrollbarGrabActive]    = ImColor(120, 120, 120, 255);
-colors[ImGuiCol_Button]                 = ImColor(36, 36, 36, 255); 
-colors[ImGuiCol_ButtonHovered]          = ImColor(36, 36, 36, 255); 
-colors[ImGuiCol_ButtonActive]           = ImColor(36, 36, 36, 255); 
-colors[ImGuiCol_CheckMark]              = ImColor(128, 48, 194, 255);
-colors[ImGuiCol_SliderGrab]             = ImColor(128, 48, 194, 255);
-colors[ImGuiCol_SliderGrabActive]       = ImColor(128, 48, 194, 255);
-colors[ImGuiCol_Header]                 = ImColor(40, 40, 40, 255);
-colors[ImGuiCol_HeaderHovered]          = ImColor(60, 60, 60, 255);
-colors[ImGuiCol_HeaderActive]           = ImColor(80, 80, 80, 255);
-colors[ImGuiCol_Tab]                    = ImColor(30, 30, 30, 255);
-colors[ImGuiCol_TabHovered]             = ImColor(50, 50, 50, 255);
-colors[ImGuiCol_TabActive]              = ImColor(70, 70, 70, 255);
-colors[ImGuiCol_TabUnfocused]           = ImColor(25, 25, 25, 255);
-colors[ImGuiCol_TabUnfocusedActive]     = ImColor(50, 50, 50, 255);
-colors[ImGuiCol_Separator]              = ImColor(70, 70, 70, 255);
-colors[ImGuiCol_SeparatorHovered]       = ImColor(255, 0, 0, 180);
-colors[ImGuiCol_SeparatorActive]        = ImColor(255, 0, 0, 255);
-colors[ImGuiCol_ResizeGrip]             = ImColor(80, 80, 80, 0);
-colors[ImGuiCol_ResizeGripHovered]      = ImColor(100, 100, 100, 0);
-colors[ImGuiCol_ResizeGripActive]       = ImColor(120, 120, 120, 0);
-colors[ImGuiCol_TableHeaderBg]          = ImColor(30, 30, 30, 255);
-colors[ImGuiCol_TableBorderStrong]      = ImColor(80, 80, 80, 255);
-colors[ImGuiCol_TableBorderLight]       = ImColor(50, 50, 50, 255);
-colors[ImGuiCol_TableRowBg]             = ImColor(15, 15, 15, 255);
-colors[ImGuiCol_TableRowBgAlt]          = ImColor(20, 20, 20, 255);
-colors[ImGuiCol_TextSelectedBg]         = ImColor(255, 0, 0, 100);
-colors[ImGuiCol_DragDropTarget]         = ImColor(255, 0, 0, 200);
-colors[ImGuiCol_NavHighlight]           = ImColor(255, 0, 0, 200);
-colors[ImGuiCol_NavWindowingHighlight]  = ImColor(255, 0, 0, 180);
-colors[ImGuiCol_NavWindowingDimBg]      = ImColor(0, 0, 0, 120);
-colors[ImGuiCol_ModalWindowDimBg]       = ImColor(0, 0, 0, 150);
+colors[ImGuiCol_Button]           = GetMenuColorVec4(1.0f);
+colors[ImGuiCol_ButtonHovered]    = GetMenuColorVec4(1.0f);
+colors[ImGuiCol_ButtonActive]     = GetMenuColorVec4(1.0f);
+
+colors[ImGuiCol_Text]             = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+colors[ImGuiCol_TextDisabled]     = ImVec4(0.50f, 0.40f, 0.55f, 1.00f);
+
+colors[ImGuiCol_FrameBg]          = ImVec4(0.12f, 0.10f, 0.15f, 1.00f);
+colors[ImGuiCol_FrameBgHovered]   = ImVec4(0.16f, 0.12f, 0.20f, 1.00f);
+colors[ImGuiCol_FrameBgActive]    = ImVec4(0.20f, 0.15f, 0.25f, 1.00f);
+
+colors[ImGuiCol_Header]           = GetMenuColorVec4(0.78f);
+colors[ImGuiCol_HeaderHovered]    = GetMenuColorVec4(0.86f);
+colors[ImGuiCol_HeaderActive]     = GetMenuColorVec4(1.0f);
+
+colors[ImGuiCol_SliderGrab]       = GetMenuColorVec4(1.0f);
+colors[ImGuiCol_SliderGrabActive] = GetMenuColorVec4(0.86f);
+colors[ImGuiCol_CheckMark]        = GetMenuColorVec4(1.0f);
+
+style.WindowBorderSize  = 0.0f;
+style.FrameBorderSize   = 0.0f;
+style.ChildBorderSize   = 0.0f;
+style.PopupBorderSize   = 0.0f;
+
+style.WindowRounding    = 12.0f;
+style.FrameRounding     = 8.0f;
+style.GrabRounding      = 0.0f;
+style.ChildRounding     = 12.0f;
+
+style.WindowPadding     = ImVec2(18.0f, 18.0f);
+style.FramePadding      = ImVec2(10.0f, 6.0f);
+style.ItemSpacing       = ImVec2(10.0f, 10.0f);
+style.ItemInnerSpacing  = ImVec2(6.0f, 6.0f);
+
+style.WindowTitleAlign  = ImVec2(0.5f, 0.5f);
+style.DisplaySafeAreaPadding = ImVec2(0, 0);
 
             io.ConfigWindowsMoveFromTitleBarOnly = true;
             io.IniFilename = NULL;
@@ -245,108 +311,17 @@ colors[ImGuiCol_ModalWindowDimBg]       = ImColor(0, 0, 0, 150);
             icons_config.OversampleH = 2.5;
             icons_config.OversampleV = 2.5;
             
-                  io.Fonts->AddFontFromMemoryTTF((void *)RISHABHPAPA_data, RISHABHPAPA_size, 30.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
-                  io.Fonts->AddFontFromMemoryCompressedTTF(font_awesome_data, font_awesome_size, 50.0f, &icons_config, icons_ranges);
-                  io.Fonts->AddFontFromMemoryTTF(const_cast<std::uint8_t*>(Custom), sizeof(Custom), 24.f, &CustomFont);
-         // memset(&Config, 0, sizeof(sConfig));
-//
+            io.Fonts->AddFontFromMemoryTTF((void *)RISHABHPAPA_data, RISHABHPAPA_size, 29.0f, NULL, io.Fonts->GetGlyphRangesVietnamese());
+            io.Fonts->AddFontFromMemoryCompressedTTF(font_awesome_data, font_awesome_size, 30.0f, &icons_config, icons_ranges);
+            io.Fonts->AddFontFromMemoryTTF(const_cast<std::uint8_t*>(Custom), sizeof(Custom), 24.f, &CustomFont);
 
-//ImFontConfig CustomFont;
-CustomFont.FontDataOwnedByAtlas = false;
-//font_cfg.SizePixels = 22.0f;
-static const ImWchar vietnamese_chars[] = {
-0x0020, 0x00FF, // Basic Latin + Latin Supplement
-0x0102, 0x0103, // Â, â
-0x0110, 0x0111, // Đ, đ
-0x0128, 0x0129, // Ĩ, ĩ
-0x0168, 0x0169, // Ũ, ũ
-0x01A0, 0x01A1, // Ơ, ơ
-0x01AF, 0x01B0, // Ư, ư
-0x1EA0, 0x1EF9, // Vietnamese specific characters
-0 // null-terminated list
-};
+ApplyMenuTheme();
 }
 
 
 bool clearMousePos = true;
 bool ImGuiOK = false;
 bool initImGui = false;
-
-GLuint logoTexture = 0;
-int logoWidth = 0, logoHeight = 0;
-
-void LoadLogoTexture() {
-    if (logoTexture != 0) return;
-    
-    int channels;
-    unsigned char* image_data = stbi_load_from_memory(dexxter_data, dexxter_size, &logoWidth, &logoHeight, &channels, 4);
-    
-    if (image_data == nullptr) {
-        LOGE("Failed to load logo texture from memory!");
-        return;
-    }
-    
-    LOGI("Logo loaded successfully: %dx%d, channels: %d", logoWidth, logoHeight, channels);
-    
-    glGenTextures(1, &logoTexture);
-    glBindTexture(GL_TEXTURE_2D, logoTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, logoWidth, logoHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-    
-    stbi_image_free(image_data);
-    
-    LOGI("Logo texture created with ID: %u", logoTexture);
-}
-
-
-void VerticalTab(const char* label, int tab_index, int* p_selected_tab) {
-ImGuiStyle& style = ImGui::GetStyle();
-ImVec4* colors = style.Colors;
-
-// Push custom colors for the selected and unselected states
-ImVec4 color = ImColor(0, 150, 255, 5);
-ImVec4 colorActive = ImColor(0, 150, 255, 5);
-ImVec4 colorHovered = ImColor(0, 150, 255, 5);
-
-if (tab_index == *p_selected_tab) {
-// This is the selected tab, make it blue like in the image
-ImGui::PushStyleColor(ImGuiCol_Button, colorActive);
-ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colorActive);
-ImGui::PushStyleColor(ImGuiCol_ButtonActive, colorActive);
-} else {
-// Unselected tabs are dark
-ImGui::PushStyleColor(ImGuiCol_Button, color);
-ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colorHovered);
-ImGui::PushStyleColor(ImGuiCol_ButtonActive, colorActive);
-}
-
-if (ImGui::Button(label, ImVec2(200, 50))) { // Button size (width, height)
-*p_selected_tab = tab_index;
-}
-
-if (tab_index == *p_selected_tab) {
-ImDrawList* draw_list = ImGui::GetWindowDrawList();
-const ImVec2 p_min = ImGui::GetItemRectMin();
-const ImVec2 p_max = ImGui::GetItemRectMax();
-
-ImU32 line_color = IM_COL32(50, 150, 255, 255);
-float line_thickness = 8.0f;
-
-draw_list->AddLine(
-ImVec2(p_min.x, p_min.y), 
-ImVec2(p_min.x, p_max.y), 
-line_color, 
-line_thickness
-);
-}
-
-ImGui::PopStyleColor(3);
-}
-
-static int selected_tab = 0;
 inline EGLBoolean (*old_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
 inline EGLBoolean hook_eglSwapBuffers(EGLDisplay dpy, EGLSurface surface) {
     
@@ -396,165 +371,189 @@ inline EGLBoolean hook_eglSwapBuffers(EGLDisplay dpy, EGLSurface surface) {
         
 DrawESP(g_GlWidth, g_GlHeight);
 ImDrawList*draw = ImGui::GetBackgroundDrawList();
-    
-    LoadLogoTexture();
-    
-    static bool menuCollapsed = false;
-    static ImVec2 titleBarClickPos = ImVec2(0, 0);
-    static bool titleBarPressed = false;
-    static float animTime = 0.0f;
-    animTime += io.DeltaTime;
-    
-    ImU32 purpleCream = IM_COL32(147, 112, 219, 255);
-    
-    bool pushedWindowBgColor = false;
-    if (!menuCollapsed) {
-        ImGui::SetNextWindowSize(ImVec2(520, 550), ImGuiCond_Always);
-    } else {
-        ImGui::SetNextWindowSize(ImVec2(520, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowContentSize(ImVec2(0, 0));
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(147.0f/255.0f, 112.0f/255.0f, 219.0f/255.0f, 1.0f));
-        pushedWindowBgColor = true;
-    }
-    
-    if (ImGui::Begin("DEXXTERX | MOBILE ", 0, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | (menuCollapsed ? ImGuiWindowFlags_NoScrollbar : 0))) {
-    
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    
-    if (menuCollapsed) {
-        float collapsedHeight = window->TitleBarHeight();
-        ImGui::SetWindowSize(ImVec2(520, collapsedHeight));
-    }
-    ImVec2 titleBarMin = window->Pos;
-    ImVec2 titleBarMax = ImVec2(window->Pos.x + window->Size.x, window->Pos.y + window->TitleBarHeight());
-    
-    ImVec2 mousePos = ImGui::GetMousePos();
-    bool mouseInTitleBar = (mousePos.x >= titleBarMin.x && mousePos.x <= titleBarMax.x && 
-                            mousePos.y >= titleBarMin.y && mousePos.y <= titleBarMax.y);
-    
-    if (mouseInTitleBar && ImGui::IsMouseClicked(0)) {
-        titleBarClickPos = mousePos;
-        titleBarPressed = true;
-    }
-    
-    if (titleBarPressed && ImGui::IsMouseReleased(0)) {
-        ImVec2 releasePos = ImGui::GetMousePos();
-        float dragDistance = sqrtf(
-            (releasePos.x - titleBarClickPos.x) * (releasePos.x - titleBarClickPos.x) +
-            (releasePos.y - titleBarClickPos.y) * (releasePos.y - titleBarClickPos.y)
-        );
-        if (dragDistance < 10.0f) {
-            menuCollapsed = !menuCollapsed;
-        }
-        titleBarPressed = false;
-    }
-    
-    ImDrawList* foregroundDraw = ImGui::GetForegroundDrawList();
-    ImVec2 windowMin = window->Pos;
-    ImVec2 windowMax = ImVec2(window->Pos.x + window->Size.x, window->Pos.y + window->Size.y);
-       
-    if (menuCollapsed) {
-        foregroundDraw->AddRectFilled(
-            windowMin,
-            windowMax,
-            purpleCream,
-            window->WindowRounding,
-            ImDrawFlags_RoundCornersAll
-        );
-    } else {
-        foregroundDraw->AddRectFilled(
-            titleBarMin,
-            titleBarMax,
-            purpleCream,
-            window->WindowRounding,
-            ImDrawFlags_RoundCornersTop
-        );
-    }
-    
-    ImVec2 textSize = ImGui::CalcTextSize("DEXXTERX | MOBILE ");
-    float titleBarCenterX = window->Pos.x + (window->Size.x * 0.5f);
-    float textPosX = titleBarCenterX - (textSize.x * 0.5f);
-    float textPosY = window->Pos.y + (window->TitleBarHeight() - textSize.y) * 0.5f;
-    
-    foregroundDraw->AddText(
-        ImVec2(textPosX, textPosY),
-        IM_COL32(255, 255, 255, 255),
-        "DEXXTERX | MOBILE "
-    );
-    
-    float borderThickness = 1.5f;
-    
-    foregroundDraw->AddRect(
-        windowMin,
-        windowMax,
-        purpleCream,
-        window->WindowRounding,
-        0,
-        borderThickness
-    );
-    
-    if (logoTexture != 0) {
-        float logoSize = window->TitleBarHeight() - 8.0f;
-        float logoSpacing = 12.0f;
-        ImVec2 logoPos = ImVec2(textPosX - logoSize - logoSpacing, window->Pos.y + 6.0f);
-        ImVec2 logoEnd = ImVec2(logoPos.x + logoSize, logoPos.y + logoSize);
+
+    #define ICON_FA_CROSSHAIRS "\xef\x81\x9b"
+    #define ICON_FA_EYE "\xef\x81\xae"
+    #define ICON_FA_FIRE "\xef\x81\xad"
+    #define ICON_FA_USER_SECRET "\xef\x88\x9b"
+    #define ICON_FA_TIMES "\xef\x80\x8d"
         
-        foregroundDraw->AddImageRounded(
-            (void*)(intptr_t)logoTexture,
-            logoPos,
-            logoEnd,
-            ImVec2(0, 0),
-            ImVec2(1, 1),
-            IM_COL32(255, 255, 255, 255),
-            logoSize * 0.5f,
-            ImDrawFlags_RoundCornersAll
-        );
-    } else {
-        LOGE("Logo texture not loaded! logoTexture = %u", logoTexture);
-    }
+    static bool show_menu = true;
     
-    if (!menuCollapsed) {
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
-    ImGui::Spacing();
-    static int tab = 0;
-    ImGui::Spacing();
-    if (ImGui::Button("Aimbot", ImVec2(130, 50))) tab = 0;
-    ImGui::SameLine();
-    if (ImGui::Button("Player", ImVec2(130, 50))) tab = 1;
-    ImGui::SameLine();
-    if (ImGui::Button("Info", ImVec2(130, 50))) tab = 2;
-    ImGui::Spacing();
-    if (tab == 0)
-    {
-    ImGui::Checkbox(" Enable Function", &Enable);
-    ImGui::Separator();
-        ImGui::Checkbox(" Aimbot Legit", &Aimbot);
-    ImGui::Separator();
-    ImGui::Checkbox(" Aim Kill", &AimKill1);
-    ImGui::Separator();
-        ImGui::SliderFloat((""), &Fov_Aim, 0.0f, 9000.0f, "%.0f°", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_NoInput);
-    }
-    else if (tab == 1)
-    {
-        ImGui::Checkbox(" Enable Esp", &PlayEsp);
-        ImGui::Separator();
-    ImGui::Checkbox(" Enable Line", &Config.ESP.Line);
-        ImGui::Separator();
-    ImGui::Checkbox(" Enable Box", &Config.ESP.Box);
-        ImGui::Separator();
-        ImGui::Checkbox(" Enable Player", &EnaPlayer);
-        ImGui::Separator();
-    }
-    else if (tab == 2)
-    {
-    ImGui::Text("Info Settings");
-    }
-    }
-    }
-    ImGui::End();
-    
-    if (pushedWindowBgColor) {
-        ImGui::PopStyleColor();
+    if (show_menu) {
+        ImGui::SetNextWindowSize(ImVec2(620, 410), ImGuiCond_Once);
+        ImGui::Begin(OBFUSCATE("DEXXTER MOD APK V2.1"), &show_menu, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar);
+        
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImVec2 pos = ImGui::GetWindowPos();
+        ImVec2 size = ImGui::GetWindowSize();
+        
+        ImVec2 close_btn_pos = ImVec2(pos.x + size.x - 40, pos.y + 8);
+        ImGui::SetCursorScreenPos(close_btn_pos);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, GetMenuColorVec4(0.39f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, GetMenuColorVec4(0.71f));
+        ImGui::PushStyleColor(ImGuiCol_Text, GetMenuColorVec4(1.0f));
+        if (ImGui::Button(ICON_FA_TIMES, ImVec2(28, 28))) {
+            show_menu = false;
+        }
+        ImGui::PopStyleColor(4);
+        
+        ImGui::SetCursorPos(ImVec2(8, 45));
+
+        static int tab = 0;
+        
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 12.0f);
+
+        ImGui::BeginChild("LeftTabs", ImVec2(96, 350), true, ImGuiWindowFlags_NoScrollbar);
+        ImGui::SetCursorPosY(8);
+        if (LeftNavButton("AIMBOT", ICON_FA_CROSSHAIRS, tab == 0)) tab = 0;
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 14);
+        if (LeftNavButton("VISUAL", ICON_FA_EYE, tab == 1)) tab = 1;
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 14);
+        if (LeftNavButton("BRUTAL", ICON_FA_FIRE, tab == 2)) tab = 2;
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 14);
+        if (LeftNavButton("INFO", ICON_FA_USER_SECRET, tab == 3)) tab = 3;
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+
+        ImGui::SameLine(0, 4);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 12.0f);
+
+        ImGui::BeginChild("ContentChild", ImVec2(500, 350), true, ImGuiWindowFlags_NoScrollbar);
+        
+        ImVec2 content_pos = ImGui::GetCursorScreenPos();
+        dl->AddLine(ImVec2(content_pos.x + 4, content_pos.y + 16), 
+                    ImVec2(content_pos.x + 500, content_pos.y + 16), 
+                    IM_COL32(255, 255, 255, 180), 1.0f);
+        
+        ImGui::SetCursorPosY(26);
+        
+        switch (tab) {
+            case 0: {
+                StyledCheckbox(" ACTIVE FUNCTION", &Enable);
+                ImGui::Spacing();
+                StyledCheckbox(" AIMBOT", &Aimbot);
+                ImGui::Spacing();
+                ImGui::SliderFloat(("AIM FOV"), &Fov_Aim, 0.0f, 1000.0f, "%.0f°", ImGuiSliderFlags_AlwaysClamp | ImGuiSliderFlags_NoInput);
+                ImGui::Spacing();
+                if (ImGui::Button("JOIN TELEGRAM", ImVec2(250, 40))) 
+                {
+                    OpenURL(Il2CppString::Create("https://t.me/Gohan52"));
+                }
+                break;
+            }
+            case 1: {
+                StyledCheckbox(" ESP LINE", &Config.ESP.Line);
+                StyledCheckbox(" ESP BOX", &Config.ESP.Box);
+                StyledCheckbox(" ESP HEALTH", &Config.ESP.Health);
+                
+                ImGui::Dummy(ImVec2(0.0f, 0.0f));
+                ImGui::TextColored(GetMenuColorVec4(1.0f), "ESP COLOUR");
+                ImGui::Spacing();
+                
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.20f, 0.15f, 0.25f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.25f, 0.15f, 0.30f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_SliderGrab, GetMenuColorVec4(1.0f));
+                ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, GetMenuColorVec4(0.86f));
+                
+                ImGui::SetNextItemWidth(150);
+                ImGui::SliderFloat("##EspColorR", &g_EspColor.x, 0.0f, 1.0f, "R: %.2f");
+                ImGui::SameLine(0, 8);
+                ImGui::SetNextItemWidth(150);
+                ImGui::SliderFloat("##EspColorG", &g_EspColor.y, 0.0f, 1.0f, "G: %.2f");
+                ImGui::SameLine(0, 8);
+                ImGui::SetNextItemWidth(150);
+                ImGui::SliderFloat("##EspColorB", &g_EspColor.z, 0.0f, 1.0f, "B: %.2f");
+                
+                ImGui::PopStyleColor(5);
+                break;
+            }
+            case 2: {
+                StyledCheckbox(" AIMKILL", &AimKill1);
+                ImGui::Spacing();
+                
+                break;
+            }
+            case 3: {
+                ImGui::TextColored(GetMenuColorVec4(1.0f), "MENU COLOUR");
+                ImGui::Spacing();
+                
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                ImVec2 preview_pos = ImGui::GetCursorScreenPos();
+                ImVec2 preview_size(35, 35);
+                
+                draw_list->AddRectFilled(preview_pos, 
+                    ImVec2(preview_pos.x + preview_size.x, preview_pos.y + preview_size.y), 
+                    GetMenuColor(255), 5.0f);
+                draw_list->AddRect(preview_pos, 
+                    ImVec2(preview_pos.x + preview_size.x, preview_pos.y + preview_size.y), 
+                    IM_COL32(255, 255, 255, 150), 5.0f, 0, 2.0f);
+                
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 45);
+                
+                ImGui::PushStyleColor(ImGuiCol_Button, GetMenuColorVec4(1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, GetMenuColorVec4(0.8f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, GetMenuColorVec4(0.9f));
+                
+                if (ImGui::Button("Pick Color", ImVec2(120, 35))) {
+                    g_ColorPickerOpen = !g_ColorPickerOpen;
+                }
+                ImGui::PopStyleColor(3);
+                
+                if (g_ColorPickerOpen) {
+                    ImGui::Spacing();
+                    ImGui::SetNextItemWidth(180);
+                    if (ImGui::ColorPicker4("##MenuColorPicker", (float*)&g_MenuColor, 
+                        ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview | 
+                        ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoInputs)) {
+                        ApplyMenuTheme();
+                    }
+                    
+                    ImGui::Spacing();
+                    
+                    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.5f, 0.5f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, GetMenuColorVec4(1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, GetMenuColorVec4(0.8f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, GetMenuColorVec4(0.9f));
+                    
+                    if (ImGui::Button("Close", ImVec2(120, 30))) {
+                        g_ColorPickerOpen = false;
+                    }
+                    
+                    ImGui::PopStyleColor(3);
+                    ImGui::PopStyleVar();
+                    
+                    if (ImGui::IsMouseClicked(0)) {
+                        ImVec2 mouse_pos = ImGui::GetMousePos();
+                        ImVec2 picker_min = ImGui::GetItemRectMin();
+                        ImVec2 picker_max = ImGui::GetItemRectMax();
+                        
+                        if (mouse_pos.x < content_pos.x || mouse_pos.x > content_pos.x + 500 ||
+                            mouse_pos.y < content_pos.y || mouse_pos.y > content_pos.y + 350) {
+                            if (!ImGui::IsItemHovered() && !ImGui::IsAnyItemHovered()) {
+                                g_ColorPickerOpen = false;
+                            }
+                        }
+                    }
+                }
+                
+                ImGui::Spacing();
+                ImGui::Spacing();
+                ImGui::TextColored(GetMenuColorVec4(1.0f), "INFO");
+                ImGui::Spacing();
+                ImGui::Text("Mod By: DEXXTER");
+                ImGui::Text("Version: 2.1");
+                break;
+            }
+        }
+        
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+
+        ImGui::End();
     }
     
     ImGui::Render();
